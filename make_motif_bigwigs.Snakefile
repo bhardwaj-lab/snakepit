@@ -1,11 +1,10 @@
-# conda create -n meme -c bioconda meme ucsc-bedgraphtobigwig snakemake
+# conda create -n meme -c bioconda meme ucsc-bedgraphtobigwig bedtools snakemake
 import re
 import glob
 
 genome_fasta='/hpc/hub_oudenaarden/vbhardwaj/annotations/mm10_gencode23/genome_and_annotation/GRCm38.p6.genome.fa'
 chrsizes='/hpc/hub_oudenaarden/vbhardwaj/annotations/mm10_gencode23/STARindex/no_junctions/chrNameLength.txt'
 motif_meme=glob.glob('*.meme')
-
 motif_names=[re.sub("\.meme", "", x) for x in motif_meme]
 
 print(motif_names)
@@ -33,8 +32,10 @@ rule fimo_bed:
     conda: "meme.yaml"
     shell:
         """
-        awk 'OFS="\\t" {{ print $3, $4, $5, $2, $7, $6 }}' {input} > {output.bed}; \
-        awk 'OFS="\\t" {{ print $3, $4, $5, $7 }}' {input} > {output.bg}
+        awk 'OFS="\\t" {{ if(NR>1) {{print $3, $4, $5, $2, $7, $6}} }}' {input} | head -n -4 | \
+        bedtools sort -sizeA -i - > {output.bed}; \
+        awk 'OFS="\\t" {{ if(NR>1) {{print $3, $4, $5, $7}} }}' {input} | head -n -4 | \
+        bedtools sort -sizeA -i - | bedtools merge -i - -c 4 -o sum > {output.bg}
         """
 
 rule fimo_bw:
@@ -44,4 +45,5 @@ rule fimo_bw:
     output: "{motif}/fimo.bw"
     conda: "meme.yaml"
     shell:
-        "bedGraphToBigwig {input.bg} {input.sizes} {output}"
+        " bedGraphToBigWig {input.bg} {input.sizes} {output}"
+
