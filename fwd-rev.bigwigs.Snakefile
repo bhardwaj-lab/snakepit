@@ -3,7 +3,7 @@
 #
 # Usage: snakemake --snakefile Snakefile.fwd-rev --cores 20 --jobs 3 -c "SlurmEasy -t {threads} -n {rule}"
 
-
+## needs: deeptools
 
 from os.path import join, dirname
 
@@ -13,11 +13,11 @@ from os.path import join, dirname
 
 
 
-OUTDIR = "fwd-rev"
-INDIR = <indir>
+OUTDIR = config['outdir']#"fwd-rev"
+INDIR = config['indir']
 THREADS = 10
 
-SAMPLES,REPS, = glob_wildcards(join(INDIR,'{sample,[^/]+}{rep,[ab]}_dupFilt.bam'))
+SAMPLES,REPS, = glob_wildcards(join(INDIR,'{sample,[^/]+}{rep,[ab]}.bam'))
 
 STRAND = ['forward', 'reverse']
 
@@ -37,7 +37,7 @@ rule bamcoverage:
     params :
         strand = '{strand}'
     shell:
-        '/package/deeptools-2.5.1/bin/bamCoverage -bs 1 -p {threads} --Offset 1 5 --normalizeUsingRPKM '
+        'bamCoverage -bs 1 -p {threads} --Offset 1 5 --normalizeUsingRPKM '
         '--filterRNAstrand {params.strand} -b {input} -o {output}'
 
 rule mergereps:
@@ -45,11 +45,11 @@ rule mergereps:
     output : '{sample}.{strand}_merge.bw'
     threads : THREADS
     shell:
-        '/package/deeptools-2.5.1/bin/bigwigCompare -bs 1 -p {threads}  --ratio mean -b1 {input[0]} -b2 {input[1]} -o {output}'
+        'bigwigCompare -bs 1 -p {threads}  --ratio mean -b1 {input[0]} -b2 {input[1]} -o {output}'
 
 rule mergestrands:
     input : '{sample}.forward_merge.bw', '{sample}.reverse_merge.bw'
     output : '{sample}.fwd-rev.bw'
     threads : THREADS
     shell:
-        '/package/deeptools-2.5.1/bin/bigwigCompare -bs 1 -p {threads}  --ratio subtract -b1 {input[0]} -b2 {input[1]} -o {output}'
+        'bigwigCompare -bs 1 -p {threads}  --ratio subtract -b1 {input[0]} -b2 {input[1]} -o {output}'

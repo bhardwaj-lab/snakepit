@@ -1,21 +1,21 @@
 # @author: Vivek Bhardwaj (@vivekbhr)
 # @date: Nov 5, 2016
-# @desc: Snakemake pipeline for RNA editing detection following variant calling
+# @desc: Snakemake pipeline for RNA editing detection following variant calling (human genome hg38)
 #
 # Usage: snakemake --snakefile Snakefile.editing --jobs 2 -c "SlurmEasy -t {threads} -n {rule}"
-
+## needs: bedtools, crossmap, chain files
 
 from os.path import join, dirname
 # Globals ---------------------------------------------------------------------
 
-GENOME = <genome.fa>
+GENOME = config['genome_fasta']
 REDIPORTAL = "http://srv00.recas.ba.infn.it/webshare/rediportalDownload/table1_full.txt.gz"
 DBSNP = "ftp://ftp.ncbi.nih.gov/snp/organisms/human_9606_b146_GRCh38p2/VCF/00-common_all.vcf.gz"
 HEKSNP = "http://bioinformatics.psb.ugent.be/downloads/genomeview/hek293/hg18/CG_8lines.vcf.gz"
 THREADS = 20
 # Full path to output folder.
-OUTPUT_DIR = <editing_outdir> #"editing_polyA-plus"
-VARCALL = <varcall_outdir> #"editing_polyA-plus"
+OUTPUT_DIR = config['outdir'] #"editing_polyA-plus"
+#VARCALL = config['varcall_outdir'] #"editing_polyA-plus"
 
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)

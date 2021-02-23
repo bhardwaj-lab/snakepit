@@ -1,9 +1,11 @@
+
+## needs: meme, ucsc-bedGraphToBigWig, bedtools
 # conda create -n meme -c bioconda meme ucsc-bedgraphtobigwig bedtools snakemake
 import re
 import glob
 
-genome_fasta='/hpc/hub_oudenaarden/vbhardwaj/annotations/mm10_gencode23/genome_and_annotation/GRCm38.p6.genome.fa'
-chrsizes='/hpc/hub_oudenaarden/vbhardwaj/annotations/mm10_gencode23/STARindex/no_junctions/chrNameLength.txt'
+genome_fasta=config['genome_fasta']#/hpc/hub_oudenaarden/vbhardwaj/annotations/mm10_gencode23/genome_and_annotation/GRCm38.p6.genome.fa'
+chrsizes=config['chrsizes']#/hpc/hub_oudenaarden/vbhardwaj/annotations/mm10_gencode23/STARindex/no_junctions/chrNameLength.txt'
 motif_meme=glob.glob('*.meme')
 motif_names=[re.sub("\.meme", "", x) for x in motif_meme]
 
@@ -46,4 +48,3 @@ rule fimo_bw:
     conda: "meme.yaml"
     shell:
         " bedGraphToBigWig {input.bg} {input.sizes} {output}"
-

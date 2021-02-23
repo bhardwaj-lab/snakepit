@@ -5,6 +5,7 @@
 #
 # Usage: snakemake --snakefile map_geo.Snakefile --cores 20 --jobs 4 -c "SlurmEasy -t {threads} -n {rule}"
 
+## needs: STAR, picard
 
 from os.path import join, dirname
 from subprocess import check_output
@@ -14,13 +15,13 @@ from subprocess import check_output
 THREADS=16
 
 # Full path to genome fasta.
-STARIDX = <starindex_dir>
+STARIDX = config['starindex_dir']
 # Full path to gene model annotations for splice aware alignment.
-GTF = <annotation.gtf>
+GTF = config['gtf']
 # Full path to a folder that holds all of your FASTQ files.
-FASTQ_DIR = "01_fastq"
+FASTQ_DIR = config['indir']
 # Full path to output folder.
-OUTPUT_DIR = "02_mapping"
+OUTPUT_DIR = config['outdir']
 
 # A snakemake regular expression matching the forward mate FASTQ files.
 SAMPLES, = glob_wildcards(join(FASTQ_DIR, '{sample,[^/]+}_1.fastq'))
@@ -56,7 +57,7 @@ rule star:
         THREADS
     run:
         # Map reads with STAR.
-        shell('/package/STAR-2.5.2b/bin/STAR'
+        shell('STAR'
               ' --runThreadN {threads}'
               ' --genomeDir {input.idx}'
               ' --sjdbGTFfile {input.gtf}'
@@ -91,8 +92,7 @@ rule picard_cleanstar:
     log:
         join(OUTPUT_DIR, '{sample}', 'picard.clean.log')
     run:
-        shell('module load picard-tools/2.3.0;'
-              'java -jar /package/picard-tools-2.3.0/picard.jar'
+        shell('picard'
               ' AddOrReplaceReadGroups'
               ' I={input.sam}'
               ' O={output}'

@@ -5,7 +5,7 @@
 #
 # Usage: snakemake --snakefile Snakefile.varcall --cores 20 --jobs 3 -c "SlurmEasy -t {threads} -n {rule}"
 
-
+## needs, STAR, picard, GATK
 from os.path import join, dirname
 from subprocess import check_output
 
@@ -14,13 +14,13 @@ from subprocess import check_output
 THREADS=16
 
 # Full path to genome fasta.
-GENOME = <genome.fa>
+GENOME = config['genome_fasta']
 # Full path to gene model annotations for splice aware alignment.
-GTF = <annotation.gtf>
+GTF = config['gtf']
 # Full path to a folder that holds all of your FASTQ files.
-FASTQ_DIR = <fqdir>
+FASTQ_DIR = config['indir']
 # Full path to output folder.
-OUTPUT_DIR = <varcall_dir>
+OUTPUT_DIR = config['outdir']
 
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
@@ -55,7 +55,7 @@ rule star_index:
         THREADS
     run:
         # Write stderr and stdout to the log file.
-        shell('/package/STAR-2.5.2b/bin/STAR'
+        shell('STAR'
               ' --runThreadN {threads}'
               ' --runMode genomeGenerate'
               ' --genomeDir ' + join(dirname(GENOME), 'star') +
@@ -78,7 +78,7 @@ rule star_pass1:
         THREADS
     run:
         # Map reads with STAR.
-        shell('/package/STAR-2.5.2b/bin/STAR'
+        shell('STAR'
               ' --runThreadN {threads}'
               ' --genomeDir ' + join(dirname(GENOME), 'star') +
               ' --sjdbGTFfile {input.gtf}'
@@ -123,7 +123,7 @@ rule star_pass2:
         THREADS
     run:
         # Map reads with STAR.
-        shell('/package/STAR-2.5.2b/bin/STAR'
+        shell('STAR'
               ' --runThreadN {threads}'
               ' --genomeDir ' + join(dirname(GENOME), 'star') +
               ' --sjdbGTFfile {input.gtf}'
@@ -164,8 +164,7 @@ rule picard_cleanstar:
     log:
         join(OUTPUT_DIR, '{sample}', 'picard.clean.log')
     run:
-        shell('module load picard-tools/2.3.0;'
-              'java -jar /package/picard-tools-2.3.0/picard.jar'
+        shell('picard'
               ' AddOrReplaceReadGroups'
               ' I={input.sam}'
               ' O={output}'
@@ -182,8 +181,7 @@ rule picard_markdup:
     log:
         join(OUTPUT_DIR, '{sample}', 'picard.markdup.log')
     run:
-        shell('module load picard-tools/2.3.0;'
-              'java -jar /package/picard-tools-2.3.0/picard.jar'
+        shell('picard'
               ' MarkDuplicates'
               ' I={input.bam}'
               ' O={output.dupmarked}'
@@ -199,8 +197,7 @@ rule gatk_SplitNCigarReads:
     log:
         join(OUTPUT_DIR, '{sample}', 'gatk.splitcigar.log')
     run:
-        shell('module load GATK/3.5;'
-              'java -Xmx16g -jar /package/GenomeAnalysisTK-3.5/GenomeAnalysisTK.jar'
+        shell('java -Xmx16g -jar GenomeAnalysisTK.jar'
               ' -T SplitNCigarReads'
               ' -nt {threads}'
               ' -R {input.genome}'
@@ -299,8 +296,7 @@ rule gatk_HaplotypeCaller:
     log:
         join(OUTPUT_DIR, '{sample}', 'gatk.haplotypecaller.log')
     run:
-        shell('module load GATK/3.5;'
-              'java -Xmx16g -jar /package/GenomeAnalysisTK-3.5/GenomeAnalysisTK.jar'
+        shell('java -Xmx16g -jar GenomeAnalysisTK.jar'
               ' -T HaplotypeCaller'
               ' -nct {threads}'
               ' -R {input.genome}'
@@ -319,8 +315,7 @@ rule gatk_VariantFiltration:
     log:
         join(OUTPUT_DIR, '{sample}', 'gatk.varfilter.log')
     run:
-        shell('module load GATK/3.5;'
-              'java -Xmx16g -jar /package/GenomeAnalysisTK-3.5/GenomeAnalysisTK.jar'
+        shell('GenomeAnalysisTK.jar'
               ' -T VariantFiltration'
               ' -nt {threads}'
               ' -R {input.genome}'

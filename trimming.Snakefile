@@ -4,16 +4,16 @@
 #
 # Usage: snakemake --snakefile qual_checks.Snakefile --jobs 2 -c "SlurmEasy -t {threads} -n {rule}"
 
-
+## needs: trimgalore, fastqc, multiqc
 from os.path import join
 # Globals ---------------------------------------------------------------------
 
 # Full path to output folder.
-OUTPUT_DIR = "01_fastq"
+OUTPUT_DIR = config['workdir']#"01_fastq"
 
 
 # A snakemake regular expression matching the forward mate FASTQ files.
-SAMPLES, = glob_wildcards(join(OUTPUT_DIR, 'trimmed/{sample}_R1.fastq.gz'))
+SAMPLES, = glob_wildcards(join(OUTPUT_DIR, 'fastq/{sample}_R1.fastq.gz'))
 READS = ['R1','R2']
 print(SAMPLES)
 
@@ -34,7 +34,7 @@ rule trim:
         out="qual_trimmed"
     input: "{file_basename}_R1.fastq.gz","{file_basename}_R2.fastq.gz"
     shell:
-        '/package/trim_galore_v0.4.0/bin/trim_galore --paired -q 20 -o {params.out} {input}'
+        'trim_galore --paired -q 20 -o {params.out} {input}'
 
 rule rename:
     output:
@@ -51,11 +51,11 @@ rule fastqc:
     params: out="{folder}/fastqc"
     input: "{folder}/{file_basename}.fastq.gz"
     shell:
-        '/package/FastQC-0.11.3/bin/fastqc -o {params.out} {input}'
+        'fastqc -o {params.out} {input}'
 
 rule multiqc:
     output: "{folder}/fastqc/multiqc_report.html"
     input: "{folder}"
     params: out="{folder}/fastqc"
     shell:
-        '/package/MultiQC-0.9/bin/multiqc -o {params.out} {input}'
+        'multiqc -o {params.out} {input}'

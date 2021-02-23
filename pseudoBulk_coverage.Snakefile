@@ -1,3 +1,8 @@
+# @author: Vivek Bhardwaj (@vivekbhr)
+# @desc: Snakemake workflow for creating pseudo-bulk coverage bigwigs from bam files and a tsv file with cell->cluster information
+#
+# Usage: snakemake -s pseudoBulk_coverage.Snakefile --cores 20 --jobs 4 --config [config params] -c "SlurmEasy -t {threads} -n {rule}"
+## needs: deeptools, samtools
 import csv
 import os
 infolder = config['bamfolder']
