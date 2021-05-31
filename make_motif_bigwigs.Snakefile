@@ -34,9 +34,9 @@ rule fimo_bed:
     conda: "meme.yaml"
     shell:
         """
-        awk 'OFS="\\t" {{ if(NR>1) {{print $3, $4, $5, $2, $7, $6}} }}' {input} | head -n -4 | \
+        awk 'OFS="\\t" {{ if(NR>1) {{print $2, $3, $4, $5, $6, $7}} }}' {input} | head -n -4 | \
         bedtools sort -sizeA -i - > {output.bed}; \
-        awk 'OFS="\\t" {{ if(NR>1) {{print $3, $4, $5, $7}} }}' {input} | head -n -4 | \
+        awk 'OFS="\\t" {{ if(NR>1) {{print $2, $3, $4, $6}} }}' {input} | head -n -4 | \
         bedtools sort -sizeA -i - | bedtools merge -i - -c 4 -o sum > {output.bg}
         """
 

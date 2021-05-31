@@ -29,10 +29,11 @@ clusters = getClusters(clusters_tsv[0])
 
 rule all:
     input: expand("clusters_split/{sample}_{cluster}.bam", sample = samples, cluster = clusters),
-           expand("clusters_split/{sample}_{cluster}.bw", sample = samples, cluster = clusters),
+           expand("clusters_split/{cl}_merged.bam", cl = clusters),
            expand("clusters_split/{cl}_merged.bam.bai", cl = clusters),
            expand("clusters_split/{cl}_merged.bw", cl = clusters)
-
+print(samples)
+print(clusters)
 ## split bam by cluster
 rule splitBAM:
     input:
@@ -40,7 +41,7 @@ rule splitBAM:
         bai = infolder+"/{sample}.bam.bai",
         clusters = '{sample}.txt'
     output:
-        bams = temp(expand("clusters_split/{{sample}}_{cluster}.bam", cluster = clusters))
+        bams = expand("clusters_split/{{sample}}_{cluster}.bam", cluster = clusters)
     wildcard_constraints:
         cluster=clusterRegex
     params:
