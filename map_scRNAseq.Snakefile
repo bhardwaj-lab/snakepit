@@ -134,4 +134,4 @@ rule getBW:
     log: "logs/getBW_{sample}.err"
     threads: 20
     shell:
-        "bamCoverage --minMappingQuality 10 --samFlagExclude 256 -p {threads} --normalizeUsing CPM -b {input.bam} -o {output} 2> {log}"
+        "bamCoverage --minMappingQuality 10 --samFlagExclude 256 -p {threads} --normalizeUsing CPM -b {input.bam} -o {output} > {log} 2>&1"
