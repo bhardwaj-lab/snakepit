@@ -1,9 +1,22 @@
 # @author: Vivek Bhardwaj (@vivekbhr)
-# @desc: Snakemake workflow for creating pseudo-bulk coverage bigwigs from bam files and a tsv file with cell->cluster information
+# @desc: Snakemake workflow for mapping VASA or 10x samples using STAR
 #
 # Usage: snakemake -s map_scRNAseq.Snakefile --cores 20 --jobs 4 --config [config params] -c "SlurmEasy -t {threads} -n {rule}"
 ## needs: STAR > 2.7, deeptools, samtools
-samples = config['samples'].strip().split(',')
+import os
+import glob
+
+try:
+    indir=config['indir']
+except KeyError:
+    indir='FASTQ'
+# assuming files are named _R1/R2.fastq.gz, get sample names
+try:
+    samples = config['samples'].strip().split(',')
+except KeyError:
+    infiles = sorted(glob.glob(os.path.join(indir, '*_R1.fastq.gz')))
+    samples = [os.path.basename(x)[:-len('_R1.fastq.gz')] for x in infiles]
+
 BCwhiteList = config['barcodes']
 tempDir = config['tempdir']#/hpc/hub_oudenaarden/vbhardwaj/tempdir"
 trim = config['trim']
@@ -15,7 +28,7 @@ if trim:
     trim_dir = "FASTQ_trimmed"
     other=expand("FASTQ_trimmed/FastQC/{sample}{read}_fastqc.html", sample = samples, read=['_R1', '_R2'])
 else:
-    trim_dir = "FASTQ"
+    trim_dir = indir
     other=[]
 
 rule all:
@@ -27,11 +40,11 @@ rule all:
 if trim:
     rule cutadapt:
         input:
-            R1 = "FASTQ/{sample}_R1.fastq.gz",
-            R2 = "FASTQ/{sample}_R2.fastq.gz"
+            R1 = os.path.join(indir,"{sample}_R1.fastq.gz"),
+            R2 = os.path.join(indir,"{sample}_R2.fastq.gz")
         output:
-            R1 = "FASTQ_trimmed/{sample}_R1.fastq.gz",
-            R2 = "FASTQ_trimmed/{sample}_R2.fastq.gz"
+            R1 = temp("FASTQ_trimmed/{sample}_R1.fastq.gz"),
+            R2 = temp("FASTQ_trimmed/{sample}_R2.fastq.gz")
         params:
             opts = "-A W{'10'}"
         log:
