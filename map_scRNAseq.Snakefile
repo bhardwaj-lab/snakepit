@@ -171,7 +171,7 @@ rule dedupBAMunique:
     log: "logs/filterBAM.{sample}.log"
     threads: 1
     resources:
-        mem_mb=50000
+        mem_mb=80000
     shell:
         """
         umi_tools dedup --per-cell --cell-tag CB --umi-tag UB --extract-umi-method tag \
