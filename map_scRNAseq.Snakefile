@@ -4,6 +4,7 @@
 # Usage: snakemake -s map_scRNAseq.Snakefile --cores 20 --jobs 4 --config [config params] -c "SlurmEasy -t {threads} -n {rule}"
 ## needs: STAR > 2.7, deeptools, samtools
 ## for both VASA and 10x data, R2 has the sequence and R1 has the barcode, therefore can be mapped with the same parameters
+## TODO: switch the star_bugfix path with star version 2.7.10b,
 import os
 import glob
 
@@ -25,12 +26,6 @@ try:
 except KeyError:
     infiles = sorted(glob.glob(os.path.join(indir, '*_R1.fastq.gz')))
     samples = [os.path.basename(x)[:-len('_R1.fastq.gz')] for x in infiles]
-
-# organism type for max intron length
-try:
-    organism = config['organism']
-except KeyError:
-    organism = None
 
 if trim:
     trim_dir = "FASTQ_trimmed"
