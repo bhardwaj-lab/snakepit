@@ -80,7 +80,7 @@ if trim:
         log:
             out = "logs/FastQC_trimmed.{sample}{read}.out",
             err = "logs/FastQC_trimmed.{sample}{read}.err"
-        threads: 2
+        threads: 1
         shell: "fastqc -o {params.outdir} {input} > {log.out} 2> {log.err}"
 
 # mapped using STARsolo so possible to split SAM files per cell type later on
@@ -184,8 +184,8 @@ rule indexBAM:
     input: "STARsolo/{sample}.uniqueReads.bam"
     output: "STARsolo/{sample}.uniqueReads.bam.bai"
     log: "logs/indexBAM.{sample}.log"
-    threads: 1
-    shell: 'samtools index {input}'
+    threads: 5
+    shell: 'samtools index -@ {threads} {input}'
 
 # Get bigwig files of the trimmed fastq files check for A/T stretches
 rule getBW:
