@@ -5,6 +5,8 @@
 ## needs: STAR > 2.7, deeptools, samtools
 ## for both VASA and 10x data, R2 has the sequence and R1 has the barcode, therefore can be mapped with the same parameters
 ## TODO: switch the star_bugfix path with star version 2.7.10b,
+## TODO: set a default max intronlength when the star index lacks junctions
+
 import os
 import glob
 
@@ -20,6 +22,11 @@ try:
     indir=config['indir']
 except KeyError:
     indir='FASTQ'
+# default splice overhang
+try:
+    splice_overhang=config['splice_overhang']
+except KeyError:
+    splice_overhang = 100
 # assuming files are named _R1/R2.fastq.gz, get sample names
 try:
     samples = config['samples'].strip().split(',')
@@ -38,6 +45,7 @@ rule all:
     input:
         fileList = [expand("STARsolo/{sample}/{sample}.Solo.out/Gene/filtered/matrix.mtx", sample = samples),
                     expand("bigwigs/{sample}.bw", sample = samples),
+                    expand("QC/{sample}.counts_per_barcode.tsv", sample = samples),
                     "QC/multiqc_report.html",
                     other]
 
@@ -102,6 +110,7 @@ rule mapReads:
         UMIlen = STARsoloCoords[1],
         CBstart = STARsoloCoords[2],
         CBlen = STARsoloCoords[3],
+        spliceLen = splice_overhang,
         outdir = "STARsolo/",
         tempDir = tempDir,
         sample = "{sample}"
@@ -116,7 +125,7 @@ rule mapReads:
     ( [ -d {params.sample_dir} ] || mkdir -p {params.sample_dir} )
     maxIntronLen=`expr $(awk '{{ print $3-$2 }}' {params.index}/sjdbList.fromGTF.out.tab | sort -n -r | head -1) + 1`
     {params.star_bugfix}/STAR --runThreadN {threads} \
-    --sjdbOverhang 100 \
+    --sjdbOverhang {params.spliceLen} \
     --outSAMunmapped Within \
     --outSAMtype BAM SortedByCoordinate \
     --outBAMsortingBinsN 20 \
@@ -166,7 +175,7 @@ rule dedupBAMunique:
     log: "logs/filterBAM.{sample}.log"
     threads: 1
     resources:
-        mem_mb=80000
+        mem_mb=100000
     shell:
         """
         umi_tools dedup --per-cell --cell-tag CB --umi-tag UB --extract-umi-method tag \
@@ -181,6 +190,36 @@ rule indexBAM:
     log: "logs/indexBAM.{sample}.log"
     threads: 5
     shell: 'samtools index -@ {threads} {input}'
+
+# Count mapped and dedup reads per cell
+count_perbc_cmd =   """
+    samtools view {input} | grep -o "[[:space:]]CB:Z:[ATGC]*" | \
+    sed 's/[[:space:]]CB:Z://' | sort | uniq -c | \
+    awk 'OFS="\\t" {{ print $2, $1 }}' > {output} 2> /dev/null
+    """
+
+rule cellcount_mapped:
+    input: "STARsolo/{sample}.uniqueReads.sam"
+    output: temp("QC/counts_percell/{sample}.total.txt")
+    threads: 1
+    shell:
+        count_perbc_cmd
+
+rule cellcount_dedup:
+    input: "STARsolo/{sample}.uniqueReads.bam"
+    output: temp("QC/counts_percell/{sample}.dedup.txt")
+    threads: 1
+    shell:
+        count_perbc_cmd
+
+rule join_cellcounts:
+    input:
+        total = "QC/counts_percell/{sample}.total.txt",
+        dedup = "QC/counts_percell/{sample}.dedup.txt"
+    output: "QC/{sample}.counts_per_barcode.tsv"
+    threads: 1
+    shell:
+        "join -j 1 <(sort -k1,1 {input.total}) <(sort -k1,1 {input.dedup}) > {output}"
 
 # Get bigwig files of the trimmed fastq files check for A/T stretches
 rule getBW:
