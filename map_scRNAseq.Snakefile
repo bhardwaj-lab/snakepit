@@ -99,7 +99,6 @@ rule mapReads:
         tmpdir=temp(directory("STARsolo/{sample}/{sample}._STARtmp")),
         tmpgenome=temp(directory("STARsolo/{sample}/{sample}._STARgenome"))
     params:
-        star_bugfix='/hpc/hub_oudenaarden/vbhardwaj/programs/STAR-2.7.10a_alpha_220506/source',# use this unil version 2.7.11 is released, to avoid segfault
         gtf = GTF,
         index = star_index,
         prefix = "STARsolo/{sample}/{sample}.",
@@ -124,7 +123,7 @@ rule mapReads:
     MYTEMP=$(mktemp -d ${{TMPDIR:-/tmp}}/snakepipes.XXXXXXXXXX);
     ( [ -d {params.sample_dir} ] || mkdir -p {params.sample_dir} )
     maxIntronLen=`expr $(awk '{{ print $3-$2 }}' {params.index}/sjdbList.fromGTF.out.tab | sort -n -r | head -1) + 1`
-    {params.star_bugfix}/STAR --runThreadN {threads} \
+    STAR --runThreadN {threads} \
     --sjdbOverhang {params.spliceLen} \
     --outSAMunmapped Within \
     --outSAMtype BAM SortedByCoordinate \
