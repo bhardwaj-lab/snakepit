@@ -1,13 +1,16 @@
 
 ## needs: meme, ucsc-bedGraphToBigWig, bedtools
-# conda create -n meme -c bioconda meme ucsc-bedgraphtobigwig bedtools snakemake
+# conda create -n meme -c bioconda meme ucsc-bedgraphtobigwig bedtools snakemake snakemake-executor-plugin-slurm
 import re
 import glob
 
-genome_fasta=config['genome_fasta']#/hpc/hub_oudenaarden/vbhardwaj/annotations/mm10_gencode23/genome_and_annotation/GRCm38.p6.genome.fa'
+genome_fasta=config['fasta']#/hpc/hub_oudenaarden/vbhardwaj/annotations/mm10_gencode23/genome_and_annotation/GRCm38.p6.genome.fa'
 chrsizes=config['chrsizes']#/hpc/hub_oudenaarden/vbhardwaj/annotations/mm10_gencode23/STARindex/no_junctions/chrNameLength.txt'
-motif_meme=glob.glob('*.meme')
-motif_names=[re.sub("\.meme", "", x) for x in motif_meme]
+jaspar_memefile=config['jaspar']# motif file obtained from jaspar; with all motifs in .MEME format (https://jaspar.elixir.no/download/data/2026/CORE/JASPAR2026_CORE_non-redundant_pfms_meme.txt)
+motif_names=config['motifs'].split(",") # motif names separated by comma
+
+#motif_meme=glob.glob('*.meme')
+#motif_names=[re.sub("\.meme", "", x) for x in motif_meme]
 
 print(motif_names)
 rule all:
@@ -15,14 +18,26 @@ rule all:
         expand("{motif}/fimo.bw", motif = motif_names),
         expand("{motif}/fimo.bed", motif = motif_names)
 
+rule get_motif:
+    input: jaspar_memefile
+    output: "{motif}/{motif}.meme"
+    params:
+        motif_name = "{motif}"
+    #conda: "meme.yaml"
+    shell:
+        """
+        sed -n '1,/^MOTIF/p' {input} | sed '$d' > {output} && \
+        sed -En "/(^|[[:space:]]){params.motif_name}([[:space:]]|$)/,/^$/p" {input} >> {output}
+        """
+
 rule fimo:
     input:
         genome = genome_fasta,
-        meme = "{motif}.meme"
+        meme = "{motif}/{motif}.meme"
     output: "{motif}/fimo.tsv"
     params:
         outdir = "{motif}"
-    conda: "meme.yaml"
+    #conda: "meme.yaml"
     shell:
         "fimo --max-stored-scores 10000000 -oc {params.outdir} {input.meme} {input.genome}"
 
@@ -30,8 +45,8 @@ rule fimo_bed:
     input: "{motif}/fimo.tsv"
     output:
         bed = "{motif}/fimo.bed",
-        bg = "{motif}/fimo.bg"
-    conda: "meme.yaml"
+        bg = temp("{motif}/fimo.bg")
+    #conda: "meme.yaml"
     shell:
         """
         awk 'OFS="\\t" {{ if(NR>1) {{print $2, $3, $4, $5, $6, $7}} }}' {input} | head -n -4 | \
@@ -45,6 +60,6 @@ rule fimo_bw:
         bg = "{motif}/fimo.bg",
         sizes = chrsizes
     output: "{motif}/fimo.bw"
-    conda: "meme.yaml"
+    #conda: "meme.yaml"
     shell:
         " bedGraphToBigWig {input.bg} {input.sizes} {output}"
