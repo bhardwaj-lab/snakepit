@@ -9,6 +9,11 @@ chrsizes=config['chrsizes']#/hpc/hub_oudenaarden/vbhardwaj/annotations/mm10_genc
 jaspar_memefile=config['jaspar']# motif file obtained from jaspar; with all motifs in .MEME format (https://jaspar.elixir.no/download/data/2026/CORE/JASPAR2026_CORE_non-redundant_pfms_meme.txt)
 motif_names=config['motifs'].split(",") # motif names separated by comma
 
+# optional: given a bed file, only use those regions from genome_fasta
+try:
+    bedfile=config['bedfile']
+except KeyError:
+    bedfile=None
 #motif_meme=glob.glob('*.meme')
 #motif_names=[re.sub("\.meme", "", x) for x in motif_meme]
 
@@ -49,9 +54,9 @@ rule fimo_bed:
     #conda: "meme.yaml"
     shell:
         """
-        awk 'OFS="\\t" {{ if(NR>1) {{print $2, $3, $4, $5, $6, $7}} }}' {input} | head -n -4 | \
+        awk 'OFS="\\t" {{ if(NR>1) {{print $3, $4, $5, $2, $7, $6}} }}' {input} | head -n -4 | \
         bedtools sort -sizeA -i - > {output.bed}; \
-        awk 'OFS="\\t" {{ if(NR>1) {{print $2, $3, $4, $6}} }}' {input} | head -n -4 | \
+        awk 'OFS="\\t" {{ if(NR>1) {{print $3, $4, $5, $7}} }}' {input} | head -n -4 | \
         bedtools sort -sizeA -i - | bedtools merge -i - -c 4 -o sum > {output.bg}
         """
 
