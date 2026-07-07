@@ -14,6 +14,7 @@ try:
     bedfile=config['bedfile']
 except KeyError:
     bedfile=None
+
 #motif_meme=glob.glob('*.meme')
 #motif_names=[re.sub("\.meme", "", x) for x in motif_meme]
 
@@ -55,9 +56,9 @@ rule fimo_bed:
     shell:
         """
         awk 'OFS="\\t" {{ if(NR>1) {{print $3, $4, $5, $2, $7, $6}} }}' {input} | head -n -4 | \
-        bedtools sort -sizeA -i - > {output.bed}; \
+        sort -k1,1 -k2,2n - > {output.bed} && \
         awk 'OFS="\\t" {{ if(NR>1) {{print $3, $4, $5, $7}} }}' {input} | head -n -4 | \
-        bedtools sort -sizeA -i - | bedtools merge -i - -c 4 -o sum > {output.bg}
+        sort -k1,1 -k2,2n | bedtools merge -i - -c 4 -o sum > {output.bg}
         """
 
 rule fimo_bw:
